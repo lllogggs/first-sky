@@ -7,119 +7,81 @@
     <title>첫 하늘</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main id="skyStage" class="sky-stage sky-clear sky-night" aria-label="첫 하늘">
-      <canvas id="skyCanvas" class="sky-canvas" aria-hidden="true"></canvas>
-      <div class="sky-vignette" aria-hidden="true"></div>
-      <div class="sky-grain" aria-hidden="true"></div>
+    <main id="app" class="app">
+      <section id="homeScreen" class="home-screen" aria-label="첫 하늘 입력">
+        <canvas id="ambientCanvas" class="ambient-canvas" aria-hidden="true"></canvas>
+        <div class="home-shade" aria-hidden="true"></div>
 
-      <section class="brand-panel" aria-label="서비스 소개">
-        <p class="brand-kicker">FIRST SKY ARCHIVE</p>
+        <div class="home-copy">
+          <p class="eyebrow">FIRST SKY</p>
           <h1>첫 하늘</h1>
-          <p class="brand-copy">태어난 순간의 별과 날씨를 복원합니다.</p>
-      </section>
-
-      <form id="birthForm" class="birth-console" aria-label="출생 정보 입력">
-        <div class="console-header">
-          <span>Birth Coordinates</span>
-          <strong id="locationStatus" aria-live="polite">기록 대기</strong>
+          <p>태어난 순간의 별과 날씨로 만드는 나의 하늘 타입.</p>
         </div>
 
-        <div class="console-grid">
+        <form id="birthForm" class="birth-form">
+          <div id="locationStatus" class="status-line" aria-live="polite">정보를 입력해 주세요.</div>
+
           <label class="field field-name">
             <span>이름</span>
             <input id="personName" name="personName" type="text" autocomplete="name" placeholder="선택" />
           </label>
 
-          <label class="field">
-            <span>출생일</span>
-            <input id="birthDate" name="birthDate" type="text" inputmode="numeric" autocomplete="bday" placeholder="1994-06-21" required />
-          </label>
+          <div class="field-pair">
+            <label class="field">
+              <span>출생일</span>
+              <input id="birthDate" name="birthDate" type="text" inputmode="numeric" autocomplete="bday" placeholder="1994-06-21" required />
+            </label>
+            <label class="field">
+              <span>시간</span>
+              <input id="birthTime" name="birthTime" type="time" required />
+            </label>
+          </div>
 
           <label class="field">
-            <span>시간</span>
-            <input id="birthTime" name="birthTime" type="time" required />
-          </label>
-
-          <label class="field field-place">
             <span>태어난 곳</span>
             <input id="birthPlace" name="birthPlace" type="search" required placeholder="서울, 부산, Tokyo" />
           </label>
-        </div>
 
-        <details class="manual-coordinates">
-          <summary>좌표 직접 입력</summary>
-          <div class="manual-grid">
-            <label class="field">
-              <span>위도</span>
-              <input id="latitude" name="latitude" type="number" step="0.000001" min="-90" max="90" placeholder="37.5665" />
-            </label>
-            <label class="field">
-              <span>경도</span>
-              <input id="longitude" name="longitude" type="number" step="0.000001" min="-180" max="180" placeholder="126.9780" />
-            </label>
+          <details class="manual-coordinates">
+            <summary>좌표 직접 입력</summary>
+            <div class="field-pair">
+              <label class="field">
+                <span>위도</span>
+                <input id="latitude" name="latitude" type="number" step="0.000001" min="-90" max="90" placeholder="37.5665" />
+              </label>
+              <label class="field">
+                <span>경도</span>
+                <input id="longitude" name="longitude" type="number" step="0.000001" min="-180" max="180" placeholder="126.9780" />
+              </label>
+            </div>
             <label class="field">
               <span>시간대</span>
               <input id="timezone" name="timezone" type="text" placeholder="Asia/Seoul" />
             </label>
-          </div>
-        </details>
+          </details>
 
-        <button id="submitButton" class="primary-button" type="submit">
-          <span class="button-mark" aria-hidden="true"></span>
-          <span class="button-label">하늘 열기</span>
-        </button>
-      </form>
-
-      <section id="readingPanel" class="reading-panel" aria-label="첫 하늘 해석">
-        <div class="reading-hero">
-          <div>
-            <p id="readingEyebrow" class="reading-eyebrow">아직 열리지 않은 하늘</p>
-            <h2 id="readingTitle">하늘 기록 대기</h2>
-          </div>
-
-          <div class="weather-orbit" aria-label="날씨 요약">
-            <span id="weatherCondition">대기 중</span>
-            <strong id="weatherTemperature">--</strong>
-          </div>
-        </div>
-
-        <div id="placementGrid" class="placement-grid" aria-label="점성술 배치">
-          <div>
-            <span>태양</span>
-            <strong>-</strong>
-          </div>
-          <div>
-            <span>달</span>
-            <strong>-</strong>
-          </div>
-          <div>
-            <span>상승궁</span>
-            <strong>-</strong>
-          </div>
-        </div>
-
-        <p id="weatherSummary" class="weather-summary">날씨 기록이 열리면 이곳에 첫 하늘의 물성이 표시됩니다.</p>
-        <p id="readingText" class="reading-text">출생 정보를 입력하면 그 순간의 별자리와 실제 날씨가 겹쳐집니다.</p>
-
-        <div class="reading-actions">
-          <button id="storyButton" class="ghost-button" type="button" disabled>
-            스토리로 보기
+          <button id="submitButton" class="primary-button" type="submit">
+            <span class="button-mark" aria-hidden="true"></span>
+            <span class="button-label">내 첫 하늘 보기</span>
           </button>
-        </div>
+        </form>
       </section>
 
-      <section id="storyOverlay" class="story-overlay" aria-hidden="true" aria-label="스토리 미리보기">
-        <div class="story-toolbar">
-          <button id="storyCloseButton" class="story-tool-button" type="button">닫기</button>
-          <span>9:16 Story</span>
-          <button id="storyDownloadButton" class="story-tool-button story-download-button" type="button">영상 저장</button>
+      <section id="storyScreen" class="story-screen" aria-hidden="true" aria-label="첫 하늘 스토리">
+        <div class="story-shell">
+          <canvas id="storyCanvas" class="story-canvas" width="1080" height="1920" aria-label="첫 하늘 스토리 결과"></canvas>
         </div>
-        <div class="story-preview-frame">
-          <canvas id="storyPreviewCanvas" class="story-preview-canvas" width="1080" height="1920" aria-label="스토리 미리보기"></canvas>
+
+        <div class="story-controls">
+          <button id="editButton" class="control-button" type="button">다시 입력</button>
+          <button id="downloadButton" class="control-button download-button" type="button">영상 저장</button>
         </div>
       </section>
     </main>
