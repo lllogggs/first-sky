@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>첫 하늘</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="control-panel" aria-label="출생 정보 입력">
+        <div class="brand-block">
+          <p class="brand-kicker">FIRST SKY</p>
+          <h1>첫 하늘</h1>
+          <p class="brand-copy">처음 만난 하늘의 기록.</p>
+        </div>
+
+        <form id="birthForm" class="birth-form">
+          <label class="field">
+            <span>이름</span>
+            <input id="personName" name="personName" type="text" autocomplete="name" placeholder="선택 입력" />
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span>출생일</span>
+              <input id="birthDate" name="birthDate" type="date" required />
+            </label>
+
+            <label class="field">
+              <span>출생시간</span>
+              <input id="birthTime" name="birthTime" type="time" required />
+            </label>
+          </div>
+
+          <label class="field">
+            <span>태어난 곳</span>
+            <input id="birthPlace" name="birthPlace" type="search" required placeholder="예: 서울, 부산, Tokyo" />
+          </label>
+
+          <details class="manual-coordinates">
+            <summary>좌표 직접 입력</summary>
+            <div class="field-row">
+              <label class="field">
+                <span>위도</span>
+                <input id="latitude" name="latitude" type="number" step="0.000001" min="-90" max="90" placeholder="37.5665" />
+              </label>
+              <label class="field">
+                <span>경도</span>
+                <input id="longitude" name="longitude" type="number" step="0.000001" min="-180" max="180" placeholder="126.9780" />
+              </label>
+            </div>
+            <label class="field">
+              <span>시간대</span>
+              <input id="timezone" name="timezone" type="text" placeholder="Asia/Seoul" />
+            </label>
+          </details>
+
+          <button id="submitButton" class="primary-button" type="submit">
+            <span class="button-mark" aria-hidden="true"></span>
+            하늘 열기
+          </button>
+        </form>
+
+        <div id="locationStatus" class="status-line" aria-live="polite"></div>
+      </section>
+
+      <section id="skyStage" class="sky-stage sky-clear sky-night" aria-label="첫 하늘 결과">
+        <canvas id="skyCanvas" class="sky-canvas" aria-hidden="true"></canvas>
+        <div class="horizon-line" aria-hidden="true"></div>
+
+        <article id="readingCard" class="reading-card">
+          <div class="reading-heading">
+            <p id="readingEyebrow">아직 열리지 않은 하늘</p>
+            <h2 id="readingTitle">기록을 기다리는 하늘</h2>
+          </div>
+
+          <div id="weatherSummary" class="weather-summary">
+            <span>날씨</span>
+            <strong>대기 중</strong>
+          </div>
+
+          <div id="placementGrid" class="placement-grid" aria-label="점성술 배치">
+            <div>
+              <span>태양</span>
+              <strong>-</strong>
+            </div>
+            <div>
+              <span>달</span>
+              <strong>-</strong>
+            </div>
+            <div>
+              <span>상승궁</span>
+              <strong>-</strong>
+            </div>
+          </div>
+
+          <p id="readingText" class="reading-text">
+            첫 장면은 아직 비어 있습니다.
+          </p>
+        </article>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
