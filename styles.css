@@ -33,7 +33,8 @@ body.story-mode {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -168,7 +169,8 @@ h1 {
 }
 
 .date-input-row {
-  grid-template-columns: minmax(0, 1fr) 48px;
+  position: relative;
+  grid-template-columns: minmax(0, 1fr) 58px;
 }
 
 .time-input-row {
@@ -176,10 +178,15 @@ h1 {
 }
 
 .field span,
+.field-label,
 .manual-coordinates summary {
   color: rgba(255, 248, 236, 0.62);
   font-size: 0.76rem;
   font-weight: 800;
+}
+
+.field-label {
+  width: fit-content;
 }
 
 .field input,
@@ -204,8 +211,15 @@ h1 {
 }
 
 .calendar-input {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 58px;
+  height: 44px;
   padding: 0;
   color: transparent;
+  opacity: 0;
+  pointer-events: none;
   text-align: center;
   cursor: pointer;
 }
@@ -223,6 +237,18 @@ h1 {
   opacity: 0.86;
   cursor: pointer;
   filter: invert(1) sepia(0.35) saturate(1.2);
+}
+
+.calendar-button {
+  height: 44px;
+  padding: 0 10px;
+  color: #071016;
+  font-size: 0.82rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--amber), var(--mint));
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
 }
 
 .field input:focus,
@@ -325,6 +351,16 @@ h1 {
   transform: translateX(-50%);
 }
 
+.story-screen:not(.is-detail-ready) .detail-button {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+.detail-button {
+  transition: opacity 220ms ease, transform 220ms ease, visibility 220ms ease;
+}
+
 .control-button {
   min-height: 40px;
   padding: 0 13px;
@@ -342,6 +378,120 @@ h1 {
   color: #071016;
   background: linear-gradient(135deg, var(--amber), var(--mint));
   border: 0;
+}
+
+.detail-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 24;
+  display: grid;
+  place-items: end center;
+  padding: max(12px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom));
+  background: rgba(1, 5, 9, 0.68);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+  backdrop-filter: blur(14px);
+}
+
+.detail-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.detail-sheet {
+  width: min(100%, 520px);
+  max-height: min(82svh, 760px);
+  overflow: auto;
+  padding: 18px;
+  color: var(--ink);
+  background:
+    linear-gradient(180deg, rgba(255, 248, 236, 0.1), rgba(255, 248, 236, 0.04)),
+    rgba(5, 12, 17, 0.92);
+  border: 1px solid rgba(255, 248, 236, 0.16);
+  border-radius: 12px;
+  box-shadow: 0 28px 100px rgba(0, 0, 0, 0.58);
+  transform: translateY(18px);
+  transition: transform 220ms ease;
+}
+
+.detail-panel.is-open .detail-sheet {
+  transform: translateY(0);
+}
+
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 248, 236, 0.14);
+}
+
+.detail-kicker {
+  margin: 0 0 5px;
+  color: var(--mint);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.detail-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.65rem;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.detail-content {
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.detail-summary {
+  color: rgba(255, 248, 236, 0.82);
+  font-size: 0.96rem;
+  font-weight: 750;
+  line-height: 1.55;
+  word-break: keep-all;
+}
+
+.detail-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  background: rgba(255, 248, 236, 0.07);
+  border: 1px solid rgba(255, 248, 236, 0.12);
+  border-radius: 8px;
+}
+
+.detail-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.detail-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.detail-card span {
+  color: var(--mint);
+  font-size: 0.75rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.detail-card p {
+  color: rgba(255, 248, 236, 0.76);
+  font-size: 0.92rem;
+  font-weight: 650;
+  line-height: 1.55;
+  word-break: keep-all;
 }
 
 @keyframes spin {
@@ -382,8 +532,8 @@ h1 {
   }
 
   .story-controls {
-    right: 18px;
-    left: 18px;
+    right: auto;
+    left: 50%;
   }
 }
 
@@ -403,5 +553,15 @@ h1 {
   .story-shell {
     width: min(100%, calc(100svh * 0.5625));
     border-radius: 0;
+  }
+
+  .control-button {
+    min-height: 38px;
+    padding: 0 11px;
+    font-size: 0.9rem;
+  }
+
+  .detail-sheet {
+    padding: 15px;
   }
 }

@@ -11,7 +11,7 @@
       href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css?v=input-ux-1" />
+    <link rel="stylesheet" href="./styles.css?v=detail-ux-1" />
   </head>
   <body>
     <main id="app" class="app">
@@ -34,15 +34,16 @@
           </label>
 
           <div class="field-pair">
-            <label class="field">
-              <span>출생일</span>
+            <div class="field">
+              <label class="field-label" for="birthDate">출생일</label>
               <div class="date-input-row">
-                <input id="birthDate" name="birthDate" type="text" inputmode="numeric" autocomplete="bday" placeholder="930408 / 1993-04-08" required />
-                <input id="birthDatePicker" class="calendar-input" type="date" aria-label="캘린더로 출생일 선택" />
+                <input id="birthDate" name="birthDate" type="text" inputmode="numeric" autocomplete="bday" placeholder="예: 861124" required />
+                <button id="calendarButton" class="calendar-button" type="button" aria-label="캘린더로 출생일 선택">달력</button>
+                <input id="birthDatePicker" class="calendar-input" type="date" aria-hidden="true" tabindex="-1" />
               </div>
-            </label>
-            <label class="field">
-              <span>시간</span>
+            </div>
+            <div class="field">
+              <label class="field-label" for="birthTime">시간</label>
               <div class="time-input-row">
                 <select id="birthPeriod" name="birthPeriod" aria-label="오전 오후 선택">
                   <option value="AM">오전</option>
@@ -50,7 +51,7 @@
                 </select>
                 <input id="birthTime" name="birthTime" type="text" inputmode="numeric" autocomplete="off" placeholder="1100 / 11:00" required />
               </div>
-            </label>
+            </div>
           </div>
 
           <label class="field">
@@ -90,11 +91,25 @@
 
         <div class="story-controls">
           <button id="editButton" class="control-button" type="button">다시 입력</button>
+          <button id="detailButton" class="control-button detail-button" type="button">자세히 보기</button>
           <button id="downloadButton" class="control-button download-button" type="button">영상 저장</button>
         </div>
+
+        <section id="detailPanel" class="detail-panel" aria-hidden="true" aria-label="첫 하늘 상세 해석">
+          <div class="detail-sheet">
+            <div class="detail-head">
+              <div>
+                <p class="detail-kicker">FIRST SKY READING</p>
+                <h2 id="detailTitle">상세 해석</h2>
+              </div>
+              <button id="closeDetailButton" class="control-button" type="button">닫기</button>
+            </div>
+            <div id="detailContent" class="detail-content"></div>
+          </div>
+        </section>
       </section>
     </main>
 
-    <script src="./app.js?v=input-ux-1"></script>
+    <script src="./app.js?v=detail-ux-1"></script>
   </body>
 </html>

@@ -13,8 +13,14 @@ const editButton = document.querySelector("#editButton");
 const downloadButton = document.querySelector("#downloadButton");
 const birthDateInput = document.querySelector("#birthDate");
 const birthDatePicker = document.querySelector("#birthDatePicker");
+const calendarButton = document.querySelector("#calendarButton");
 const birthPeriodSelect = document.querySelector("#birthPeriod");
 const birthTimeInput = document.querySelector("#birthTime");
+const detailButton = document.querySelector("#detailButton");
+const detailPanel = document.querySelector("#detailPanel");
+const detailTitle = document.querySelector("#detailTitle");
+const detailContent = document.querySelector("#detailContent");
+const closeDetailButton = document.querySelector("#closeDetailButton");
 
 const zodiac = [
   { ko: "양자리", element: "불", word: "개척자", style: "먼저 불을 붙이는 사람" },
@@ -79,6 +85,7 @@ let latestResult = null;
 let storyScene = null;
 let storyStartedAt = performance.now();
 let ambientScene = seedScene(540, 960, fallbackWeather, { key: "night", isNight: true });
+let detailRevealTimer = null;
 
 const storyTiming = {
   skyOpen: 2200,
@@ -116,6 +123,23 @@ const elementVoice = {
   },
 };
 
+const datePlaceholders = [
+  "예: 861124 / 1986-11-24",
+  "예: 020715 / 2002-07-15",
+  "예: 781003 / 1978-10-03",
+  "예: 991219 / 1999-12-19",
+  "예: 050430 / 2005-04-30",
+];
+
+const timePlaceholders = [
+  "예: 1100 / 11:00",
+  "예: 1700 / 오후 5:00",
+  "예: 0830 / 8:30",
+  "예: 2315 / 오후 11:15",
+];
+
+setRandomInputExamples();
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = readPayload();
@@ -126,7 +150,7 @@ form.addEventListener("submit", async (event) => {
     return;
   }
   if (!payload.date || !isValidDateString(payload.date)) {
-    setStatus("출생일은 930408, 19930408, 1993-04-08 중 편한 방식으로 입력해 주세요.", "error");
+    setStatus("출생일은 6자리, 8자리, YYYY-MM-DD 중 편한 방식으로 입력해 주세요.", "error");
     return;
   }
   if (!payload.time || !isValidTimeString(payload.time)) {
@@ -162,6 +186,15 @@ birthDatePicker.addEventListener("change", () => {
   birthDateInput.value = birthDatePicker.value;
 });
 
+calendarButton.addEventListener("click", () => {
+  if (typeof birthDatePicker.showPicker === "function") {
+    birthDatePicker.showPicker();
+    return;
+  }
+  birthDatePicker.focus();
+  birthDatePicker.click();
+});
+
 birthDateInput.addEventListener("blur", () => {
   const normalized = normalizeDateInput(birthDateInput.value);
   if (!normalized) return;
@@ -177,9 +210,23 @@ birthTimeInput.addEventListener("blur", () => {
 });
 
 editButton.addEventListener("click", () => {
+  resetStoryDetailState();
   storyScreen.classList.remove("is-active");
   storyScreen.setAttribute("aria-hidden", "true");
   document.body.classList.remove("story-mode");
+});
+
+detailButton.addEventListener("click", () => {
+  if (!latestResult) return;
+  renderDetailPanel(latestResult);
+  detailPanel.classList.add("is-open");
+  detailPanel.setAttribute("aria-hidden", "false");
+});
+
+closeDetailButton.addEventListener("click", closeDetailPanel);
+
+detailPanel.addEventListener("click", (event) => {
+  if (event.target === detailPanel) closeDetailPanel();
 });
 
 downloadButton.addEventListener("click", async () => {
@@ -238,6 +285,47 @@ function syncNormalizedInputs(payload) {
   }
 }
 
+function setRandomInputExamples() {
+  birthDateInput.placeholder = pickRandom(datePlaceholders);
+  birthTimeInput.placeholder = pickRandom(timePlaceholders);
+}
+
+function pickRandom(items) {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function renderDetailPanel(result) {
+  const { profile } = result;
+  detailTitle.textContent = profile.typeName;
+  detailContent.replaceChildren();
+
+  const intro = document.createElement("p");
+  intro.className = "detail-summary";
+  intro.textContent = profile.signature;
+  detailContent.appendChild(intro);
+
+  profile.detailSections.forEach((section) => {
+    const card = document.createElement("article");
+    card.className = "detail-card";
+
+    const head = document.createElement("div");
+    head.className = "detail-card-head";
+
+    const title = document.createElement("h3");
+    title.textContent = section.title;
+
+    const label = document.createElement("span");
+    label.textContent = section.label;
+
+    const body = document.createElement("p");
+    body.textContent = section.body;
+
+    head.append(title, label);
+    card.append(head, body);
+    detailContent.appendChild(card);
+  });
+}
+
 function setLoading(isLoading) {
   submitButton.disabled = isLoading;
   submitButton.classList.toggle("is-loading", isLoading);
@@ -250,9 +338,27 @@ function setStatus(message, type = "ok") {
 }
 
 function showStory() {
+  resetStoryDetailState();
   storyScreen.classList.add("is-active");
   storyScreen.setAttribute("aria-hidden", "false");
   document.body.classList.add("story-mode");
+  detailRevealTimer = window.setTimeout(() => {
+    storyScreen.classList.add("is-detail-ready");
+  }, storyTiming.duration);
+}
+
+function resetStoryDetailState() {
+  if (detailRevealTimer) {
+    window.clearTimeout(detailRevealTimer);
+    detailRevealTimer = null;
+  }
+  storyScreen.classList.remove("is-detail-ready");
+  closeDetailPanel();
+}
+
+function closeDetailPanel() {
+  detailPanel.classList.remove("is-open");
+  detailPanel.setAttribute("aria-hidden", "true");
 }
 
 function parseOptionalNumber(value) {
@@ -337,6 +443,19 @@ function formatTimeFor12HourInput(value) {
 
 function pad2(value) {
   return String(value).padStart(2, "0");
+}
+
+function withRo(word) {
+  return `${word}${pickRoParticle(word)}`;
+}
+
+function pickRoParticle(word) {
+  const text = String(word || "").trim();
+  if (!text) return "로";
+  const code = text.charCodeAt(text.length - 1);
+  if (code < 0xac00 || code > 0xd7a3) return "로";
+  const jong = (code - 0xac00) % 28;
+  return jong === 0 || jong === 8 ? "로" : "으로";
 }
 
 function isValidDateString(value) {
@@ -531,7 +650,7 @@ function buildShareProfile(payload, location, placements, weather, phase) {
   const typeCode = `${placements.sun.ko} · ${placements.moon.ko} · ${placements.ascendant.ko}`;
   const place = formatLocationName(location);
   const tags = [`#${placements.sun.word}형`, `#${placements.moon.word}감정`, `#${placements.ascendant.word}첫인상`];
-  const signature = `${placements.sun.word}로 움직이고 ${placements.moon.word}로 느끼며 ${placements.ascendant.word}로 보이는 사람`;
+  const signature = `${withRo(placements.sun.word)} 움직이고 ${withRo(placements.moon.word)} 느끼며 ${withRo(placements.ascendant.word)} 보이는 사람`;
   const weatherNote = `${phase.label} 하늘 · ${weather.label}`;
 
   return {
@@ -548,6 +667,7 @@ function buildShareProfile(payload, location, placements, weather, phase) {
       `상승 ${placements.ascendant.ko}`,
     ],
     sections: buildAstroSections(placements),
+    detailSections: buildDetailSections(placements, weather, phase),
     elementTone,
     weatherLine: [
       weather.temperature !== null ? `${round(weather.temperature)}°C` : null,
@@ -583,6 +703,35 @@ function buildAstroSections(placements) {
       sign: placements.ascendant.ko,
       title: `${placements.ascendant.ko} · ${placements.ascendant.word}`,
       body: `${ascVoice.face}.`,
+    },
+  ];
+}
+
+function buildDetailSections(placements, weather, phase) {
+  const sunVoice = elementVoice[placements.sun.element];
+  const moonVoice = elementVoice[placements.moon.element];
+  const ascVoice = elementVoice[placements.ascendant.element];
+
+  return [
+    {
+      label: "전체",
+      title: `${withRo(placements.sun.word)} 움직이고 ${withRo(placements.moon.word)} 느끼는 타입`,
+      body: `핵심은 ${sunVoice.tone} 에너지입니다. 선택은 ${placements.sun.word}처럼 빠르게 잡고, 마음은 ${placements.moon.word}처럼 반응합니다. 밖에서는 ${placements.ascendant.word}의 인상으로 먼저 읽힙니다.`,
+    },
+    {
+      label: "태양",
+      title: `행동 방식 · ${placements.sun.ko}`,
+      body: `${placements.sun.style}. ${sunVoice.drive}. 해야 할 일이 보이면 생각보다 먼저 몸이 반응하는 쪽입니다.`,
+    },
+    {
+      label: "달",
+      title: `감정 패턴 · ${placements.moon.ko}`,
+      body: `${moonVoice.feeling}. 편안해지려면 감정을 억지로 설명하기보다, 마음이 정리될 시간을 확보하는 편이 좋습니다.`,
+    },
+    {
+      label: "상승",
+      title: `첫인상과 관계 · ${placements.ascendant.ko}`,
+      body: `${ascVoice.face}. 처음 만난 사람에게는 ${placements.ascendant.word}의 방식으로 보이고, 가까워질수록 ${placements.moon.word}의 감정선이 드러납니다.`,
     },
   ];
 }
