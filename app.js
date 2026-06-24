@@ -76,6 +76,42 @@ let storyScene = null;
 let storyStartedAt = performance.now();
 let ambientScene = seedScene(540, 960, fallbackWeather, { key: "night", isNight: true });
 
+const storyTiming = {
+  skyOpen: 2200,
+  title: 2520,
+  subtitle: 3060,
+  sections: 4200,
+  footer: 7200,
+  duration: 10000,
+};
+
+const elementVoice = {
+  불: {
+    tone: "점화형",
+    drive: "먼저 켜고 빠르게 밀어붙입니다",
+    feeling: "감정도 솔직하고 뜨겁게 올라옵니다",
+    face: "첫인상은 밝고 선명합니다",
+  },
+  흙: {
+    tone: "축적형",
+    drive: "오래 보고 확실한 것을 쌓습니다",
+    feeling: "감정은 천천히, 오래 남는 쪽입니다",
+    face: "첫인상은 안정적이고 믿음직합니다",
+  },
+  공기: {
+    tone: "연결형",
+    drive: "말과 연결 속에서 방향을 찾습니다",
+    feeling: "생각으로 감정을 정리하려 합니다",
+    face: "첫인상은 가볍고 빠르게 열립니다",
+  },
+  물: {
+    tone: "감응형",
+    drive: "분위기를 읽고 깊게 반응합니다",
+    feeling: "작은 기류에도 마음이 섬세하게 움직입니다",
+    face: "첫인상은 부드럽고 깊게 남습니다",
+  },
+};
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = readPayload();
@@ -366,39 +402,67 @@ function getTimePhase(time) {
 
 function buildShareProfile(payload, location, placements, weather, phase) {
   const name = payload.name || "나";
-  const element = placements.sun.element;
-  const elementTone = {
-    불: "점화형",
-    흙: "축적형",
-    공기: "연결형",
-    물: "감응형",
-  }[element];
-  const typeName = `${weather.mood} ${placements.sun.word}`;
-  const typeCode = `${phase.label} · ${weather.label} · ${elementTone}`;
+  const elementTone = elementVoice[placements.sun.element].tone;
+  const typeName = placements.sun.word === placements.moon.word
+    ? `${placements.sun.word}형`
+    : `${placements.sun.word}형 ${placements.moon.word}`;
+  const typeCode = `${placements.sun.ko} · ${placements.moon.ko} · ${placements.ascendant.ko}`;
   const place = formatLocationName(location);
-  const temp = weather.temperature === null ? "--" : `${round(weather.temperature)}°`;
-  const tags = [`#${phase.label}`, `#${weather.label}`, `#${elementTone}`];
-  const message = `${placements.sun.word}처럼 움직이고, ${placements.moon.word}처럼 느낍니다.`;
+  const tags = [`#${placements.sun.word}형`, `#${placements.moon.word}감정`, `#${placements.ascendant.word}첫인상`];
+  const signature = `${placements.sun.word}로 움직이고 ${placements.moon.word}로 느끼며 ${placements.ascendant.word}로 보이는 사람`;
+  const weatherNote = `${phase.label} 하늘 · ${weather.label}`;
 
   return {
     name,
     typeName,
     typeCode,
-    temp,
     tags,
     dateLine: `${payload.date} ${payload.time} · ${place}`,
+    signature,
+    weatherNote,
     placements: [
       `태양 ${placements.sun.ko}`,
       `달 ${placements.moon.ko}`,
       `상승 ${placements.ascendant.ko}`,
     ],
-    message,
+    sections: buildAstroSections(placements),
+    elementTone,
     weatherLine: [
       weather.temperature !== null ? `${round(weather.temperature)}°C` : null,
       weather.cloudCover !== null ? `구름 ${round(weather.cloudCover)}%` : null,
       weather.windSpeed !== null ? `바람 ${round(weather.windSpeed)}km/h` : null,
     ].filter(Boolean).join(" · "),
   };
+}
+
+function buildAstroSections(placements) {
+  const sunVoice = elementVoice[placements.sun.element];
+  const moonVoice = elementVoice[placements.moon.element];
+  const ascVoice = elementVoice[placements.ascendant.element];
+
+  return [
+    {
+      label: "태양",
+      role: "움직이는 방식",
+      sign: placements.sun.ko,
+      title: `${placements.sun.ko} · ${placements.sun.word}`,
+      body: `${sunVoice.drive}.`,
+    },
+    {
+      label: "달",
+      role: "느끼는 방식",
+      sign: placements.moon.ko,
+      title: `${placements.moon.ko} · ${placements.moon.word}`,
+      body: `${moonVoice.feeling}.`,
+    },
+    {
+      label: "상승",
+      role: "보이는 인상",
+      sign: placements.ascendant.ko,
+      title: `${placements.ascendant.ko} · ${placements.ascendant.word}`,
+      body: `${ascVoice.face}.`,
+    },
+  ];
 }
 
 function formatLocationName(location) {
@@ -556,7 +620,8 @@ function renderSkyFrame(targetCtx, width, height, elapsed, result, scene, option
   drawClouds(targetCtx, width, height, scene, result.weather);
   drawWeather(targetCtx, width, height, elapsed, result, scene);
   drawHorizon(targetCtx, width, height, elapsed);
-  if (options.text) drawStoryText(targetCtx, width, height, result);
+  if (options.opening !== false) drawOpeningVeil(targetCtx, width, height, elapsed, result);
+  if (options.text) drawStoryText(targetCtx, width, height, elapsed, result);
 }
 
 function drawBackground(targetCtx, width, height, phase, weather) {
@@ -845,59 +910,196 @@ function drawHorizon(targetCtx, width, height, elapsed) {
   targetCtx.fill();
 }
 
-function drawStoryText(targetCtx, width, height, result) {
+function drawOpeningVeil(targetCtx, width, height, elapsed, result) {
+  const progress = easeInOutCubic(clamp01(elapsed / storyTiming.skyOpen));
+  if (progress >= 1) return;
+
+  const centerY = height * 0.36;
+  const topEdge = centerY * (1 - progress);
+  const bottomEdge = centerY + (height - centerY) * progress;
+  const edgeAlpha = 0.34 + Math.sin(progress * Math.PI) * 0.42;
+
+  targetCtx.save();
+  targetCtx.shadowColor = result.phase.isNight ? "rgba(168,232,224,0.24)" : "rgba(255,216,142,0.22)";
+  targetCtx.shadowBlur = width * 0.06;
+
+  if (topEdge > 1) {
+    const topGradient = targetCtx.createLinearGradient(0, 0, 0, topEdge);
+    topGradient.addColorStop(0, "rgba(2,6,10,0.98)");
+    topGradient.addColorStop(1, "rgba(2,6,10,0.66)");
+    targetCtx.fillStyle = topGradient;
+    targetCtx.fillRect(0, 0, width, topEdge + 3);
+  }
+
+  if (bottomEdge < height - 1) {
+    const bottomGradient = targetCtx.createLinearGradient(0, bottomEdge, 0, height);
+    bottomGradient.addColorStop(0, "rgba(2,6,10,0.62)");
+    bottomGradient.addColorStop(1, "rgba(2,6,10,0.98)");
+    targetCtx.fillStyle = bottomGradient;
+    targetCtx.fillRect(0, bottomEdge - 3, width, height - bottomEdge + 3);
+  }
+
+  targetCtx.globalCompositeOperation = "screen";
+  targetCtx.globalAlpha = edgeAlpha;
+  const slit = targetCtx.createLinearGradient(0, topEdge - 10, 0, bottomEdge + 10);
+  slit.addColorStop(0, "rgba(255,255,255,0)");
+  slit.addColorStop(0.5, result.phase.isNight ? "rgba(173,245,232,0.72)" : "rgba(255,230,162,0.68)");
+  slit.addColorStop(1, "rgba(255,255,255,0)");
+  targetCtx.fillStyle = slit;
+  targetCtx.fillRect(width * 0.08, topEdge - 12, width * 0.84, Math.max(24, bottomEdge - topEdge + 24));
+
+  const bloom = targetCtx.createRadialGradient(
+    width * 0.5,
+    centerY,
+    width * 0.08,
+    width * 0.5,
+    centerY,
+    width * (0.28 + progress * 0.68)
+  );
+  bloom.addColorStop(0, result.phase.isNight ? "rgba(171,245,232,0.42)" : "rgba(255,226,158,0.38)");
+  bloom.addColorStop(1, "rgba(255,255,255,0)");
+  targetCtx.fillStyle = bloom;
+  targetCtx.fillRect(0, 0, width, height);
+  targetCtx.restore();
+}
+
+function drawStoryText(targetCtx, width, height, elapsed, result) {
   const { profile } = result;
   const margin = width * 0.07;
+  const contentWidth = width - margin * 2;
+  const titleAlpha = reveal(elapsed, storyTiming.title, 820);
+  const metaAlpha = reveal(elapsed, storyTiming.subtitle, 740);
+  const tagAlpha = reveal(elapsed, storyTiming.subtitle + 360, 700);
+  const footerAlpha = reveal(elapsed, storyTiming.footer, 760);
+
   targetCtx.save();
   targetCtx.textBaseline = "top";
-  targetCtx.shadowColor = "rgba(0,0,0,0.34)";
-  targetCtx.shadowBlur = 26;
 
-  targetCtx.fillStyle = "#9ee6d5";
-  targetCtx.font = `800 ${width * 0.028}px 'IBM Plex Sans KR', sans-serif`;
-  targetCtx.fillText("FIRST SKY TYPE", margin, height * 0.055);
+  drawTextScrim(targetCtx, width, height, elapsed);
 
-  targetCtx.fillStyle = "#fffaf0";
-  targetCtx.font = `700 ${width * 0.087}px 'Gowun Batang', serif`;
-  wrapCanvasText(targetCtx, profile.typeName, margin, height * 0.095, width - margin * 2, width * 0.098, 2);
+  targetCtx.shadowColor = "rgba(0,0,0,0.42)";
+  targetCtx.shadowBlur = 30;
 
-  targetCtx.fillStyle = "rgba(255,250,240,0.78)";
-  targetCtx.font = `700 ${width * 0.029}px 'IBM Plex Sans KR', sans-serif`;
-  wrapCanvasText(targetCtx, profile.dateLine, margin, height * 0.235, width - margin * 2, width * 0.04, 2);
+  withCanvasReveal(targetCtx, titleAlpha, width * 0.035, () => {
+    targetCtx.fillStyle = "#9ee6d5";
+    targetCtx.font = `800 ${width * 0.026}px 'IBM Plex Sans KR', sans-serif`;
+    targetCtx.fillText("FIRST SKY TYPE", margin, height * 0.355);
 
-  targetCtx.fillStyle = "#fffaf0";
-  targetCtx.font = `800 ${width * 0.115}px 'IBM Plex Sans KR', sans-serif`;
-  targetCtx.fillText(profile.temp, margin, height * 0.45);
+    targetCtx.fillStyle = "#fffaf0";
+    targetCtx.font = `700 ${width * 0.086}px 'Gowun Batang', serif`;
+    wrapCanvasText(targetCtx, profile.typeName, margin, height * 0.392, contentWidth, width * 0.095, 2);
+  });
 
-  targetCtx.fillStyle = "#f1bf77";
-  targetCtx.font = `800 ${width * 0.034}px 'IBM Plex Sans KR', sans-serif`;
-  targetCtx.fillText(profile.typeCode, margin, height * 0.525);
+  withCanvasReveal(targetCtx, metaAlpha, width * 0.026, () => {
+    targetCtx.fillStyle = "rgba(255,250,240,0.82)";
+    targetCtx.font = `700 ${width * 0.032}px 'IBM Plex Sans KR', sans-serif`;
+    wrapCanvasText(targetCtx, profile.signature, margin, height * 0.505, contentWidth, width * 0.046, 2);
 
-  drawTagRow(targetCtx, profile.tags, margin, height * 0.575, width);
+    targetCtx.fillStyle = "#f1bf77";
+    targetCtx.font = `800 ${width * 0.027}px 'IBM Plex Sans KR', sans-serif`;
+    wrapCanvasText(targetCtx, profile.typeCode, margin, height * 0.575, contentWidth, width * 0.038, 1);
+  });
 
-  const cardY = height * 0.69;
-  const cardH = height * 0.215;
+  withCanvasReveal(targetCtx, tagAlpha, width * 0.02, () => {
+    drawTagRow(targetCtx, profile.tags, margin, height * 0.615, width);
+  });
+
+  const sectionY = height * 0.65;
+  const sectionH = height * 0.076;
+  const gap = height * 0.015;
+  const sections = profile.sections || [];
+  sections.forEach((section, index) => {
+    const sectionAlpha = reveal(elapsed, storyTiming.sections + index * 520, 720);
+    withCanvasReveal(targetCtx, sectionAlpha, width * 0.03, () => {
+      drawStorySection(targetCtx, section, margin, sectionY + index * (sectionH + gap), contentWidth, sectionH, width);
+    });
+  });
+
+  withCanvasReveal(targetCtx, footerAlpha, width * 0.02, () => {
+    const footerY = height * 0.945;
+    targetCtx.shadowBlur = 0;
+    targetCtx.fillStyle = "rgba(255,250,240,0.62)";
+    targetCtx.font = `700 ${width * 0.024}px 'IBM Plex Sans KR', sans-serif`;
+    targetCtx.fillText("첫 하늘 · FIRST SKY", margin, footerY);
+    targetCtx.textAlign = "right";
+    targetCtx.fillStyle = "rgba(158,230,213,0.78)";
+    targetCtx.fillText(profile.weatherNote, width - margin, footerY);
+    targetCtx.textAlign = "left";
+  });
+  targetCtx.restore();
+}
+
+function drawTextScrim(targetCtx, width, height, elapsed) {
+  const alpha = 0.88 * reveal(elapsed, storyTiming.skyOpen - 360, 1100);
+  if (alpha <= 0.01) return;
+
+  targetCtx.save();
+  targetCtx.globalAlpha = alpha;
+  const gradient = targetCtx.createLinearGradient(0, height * 0.24, 0, height);
+  gradient.addColorStop(0, "rgba(1,5,8,0)");
+  gradient.addColorStop(0.28, "rgba(1,5,8,0.18)");
+  gradient.addColorStop(0.64, "rgba(1,5,8,0.62)");
+  gradient.addColorStop(1, "rgba(1,5,8,0.9)");
+  targetCtx.fillStyle = gradient;
+  targetCtx.fillRect(0, height * 0.24, width, height * 0.76);
+  targetCtx.restore();
+}
+
+function drawStorySection(targetCtx, section, x, y, width, height, canvasWidth) {
+  const padX = canvasWidth * 0.035;
+  const padY = canvasWidth * 0.023;
+  const accent = canvasWidth * 0.012;
+
+  targetCtx.save();
   targetCtx.shadowBlur = 0;
-  targetCtx.fillStyle = "rgba(5,12,17,0.48)";
-  targetCtx.strokeStyle = "rgba(255,250,240,0.2)";
-  roundRect(targetCtx, margin, cardY, width - margin * 2, cardH, 26);
+  targetCtx.fillStyle = "rgba(255,250,240,0.072)";
+  targetCtx.strokeStyle = "rgba(255,250,240,0.13)";
+  roundRect(targetCtx, x, y, width, height, canvasWidth * 0.022);
   targetCtx.fill();
   targetCtx.stroke();
 
   targetCtx.fillStyle = "#9ee6d5";
-  targetCtx.font = `800 ${width * 0.028}px 'IBM Plex Sans KR', sans-serif`;
-  targetCtx.fillText("MY SKY PATTERN", margin + 28, cardY + 28);
-
-  drawPlacementPills(targetCtx, profile.placements, margin + 28, cardY + 76, width - margin * 2 - 56, width);
-
-  targetCtx.fillStyle = "rgba(255,250,240,0.88)";
-  targetCtx.font = `700 ${width * 0.034}px 'IBM Plex Sans KR', sans-serif`;
-  wrapCanvasText(targetCtx, profile.message, margin + 28, cardY + 166, width - margin * 2 - 56, width * 0.048, 2);
+  targetCtx.beginPath();
+  targetCtx.arc(x + padX, y + padY + accent, accent, 0, Math.PI * 2);
+  targetCtx.fill();
 
   targetCtx.fillStyle = "rgba(255,250,240,0.62)";
-  targetCtx.font = `700 ${width * 0.025}px 'IBM Plex Sans KR', sans-serif`;
-  targetCtx.fillText(profile.weatherLine, margin + 28, cardY + cardH - 52);
+  targetCtx.font = `800 ${canvasWidth * 0.022}px 'IBM Plex Sans KR', sans-serif`;
+  targetCtx.fillText(`${section.label} · ${section.role}`, x + padX + accent * 2.2, y + padY - canvasWidth * 0.004);
+
+  targetCtx.fillStyle = "#fffaf0";
+  targetCtx.font = `800 ${canvasWidth * 0.031}px 'IBM Plex Sans KR', sans-serif`;
+  targetCtx.fillText(section.title, x + padX, y + padY + canvasWidth * 0.038);
+
+  targetCtx.fillStyle = "rgba(255,250,240,0.78)";
+  targetCtx.font = `600 ${canvasWidth * 0.025}px 'IBM Plex Sans KR', sans-serif`;
+  wrapCanvasText(targetCtx, section.body, x + padX, y + padY + canvasWidth * 0.077, width - padX * 2, canvasWidth * 0.036, 1);
   targetCtx.restore();
+}
+
+function withCanvasReveal(targetCtx, alpha, offsetY, draw) {
+  if (alpha <= 0.01) return;
+  targetCtx.save();
+  targetCtx.globalAlpha *= alpha;
+  targetCtx.translate(0, offsetY * (1 - alpha));
+  draw();
+  targetCtx.restore();
+}
+
+function reveal(elapsed, start, duration) {
+  return easeOutCubic(clamp01((elapsed - start) / duration));
+}
+
+function easeOutCubic(value) {
+  return 1 - Math.pow(1 - value, 3);
+}
+
+function easeInOutCubic(value) {
+  return value < 0.5 ? 4 * value * value * value : 1 - Math.pow(-2 * value + 2, 3) / 2;
+}
+
+function clamp01(value) {
+  return Math.max(0, Math.min(1, value));
 }
 
 function drawPlacementPills(targetCtx, items, x, y, maxWidth, width) {
@@ -987,7 +1189,7 @@ async function downloadStoryVideo(result) {
   const mimeType = pickVideoMimeType();
   const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
   const chunks = [];
-  const duration = 7600;
+  const duration = storyTiming.duration;
   const scene = seedScene(storyCanvas.width, storyCanvas.height, result.weather, result.phase);
 
   const recording = new Promise((resolve, reject) => {

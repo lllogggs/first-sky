@@ -239,11 +239,12 @@ input[type="time"] {
   place-items: center;
   padding: max(12px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 50% 20%, rgba(141, 221, 198, 0.18), transparent 32%),
-    #03080d;
+    radial-gradient(circle at 50% 20%, rgba(141, 221, 198, 0.16), transparent 30%),
+    radial-gradient(circle at 50% 86%, rgba(241, 191, 119, 0.11), transparent 34%),
+    #01050a;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 180ms ease;
+  transition: opacity 220ms ease;
 }
 
 .story-screen.is-active {
@@ -257,10 +258,10 @@ input[type="time"] {
   max-width: 520px;
   aspect-ratio: 9 / 16;
   overflow: hidden;
-  border: 1px solid rgba(255, 248, 236, 0.16);
-  border-radius: 12px;
+  border: 0;
+  border-radius: 10px;
   background: #071016;
-  box-shadow: 0 28px 100px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 24px 110px rgba(0, 0, 0, 0.62);
 }
 
 .story-canvas {
@@ -272,13 +273,14 @@ input[type="time"] {
 .story-controls {
   position: fixed;
   top: max(12px, env(safe-area-inset-top));
-  right: 10px;
-  left: 10px;
+  left: 50%;
+  width: min(calc(100% - 20px), 520px);
   z-index: 22;
   display: flex;
   justify-content: space-between;
   gap: 10px;
   pointer-events: none;
+  transform: translateX(-50%);
 }
 
 .control-button {
@@ -353,7 +355,7 @@ input[type="time"] {
   }
 
   .story-shell {
-    width: 100%;
-    border-radius: 8px;
+    width: min(100%, calc(100svh * 0.5625));
+    border-radius: 0;
   }
 }
