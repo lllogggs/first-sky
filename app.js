@@ -14,6 +14,11 @@ const weatherSummary = document.querySelector("#weatherSummary");
 const placementGrid = document.querySelector("#placementGrid");
 const readingText = document.querySelector("#readingText");
 const storyButton = document.querySelector("#storyButton");
+const storyOverlay = document.querySelector("#storyOverlay");
+const storyCloseButton = document.querySelector("#storyCloseButton");
+const storyDownloadButton = document.querySelector("#storyDownloadButton");
+const storyPreviewCanvas = document.querySelector("#storyPreviewCanvas");
+const storyPreviewCtx = storyPreviewCanvas.getContext("2d");
 
 const zodiac = [
   { key: "aries", ko: "양자리", element: "불", tone: "먼저 불을 붙이는 힘", text: "빠르게 반응하고 시작점에 서는 감각이 강합니다." },
@@ -88,6 +93,9 @@ let animationState = {
 };
 
 let latestResult = null;
+let storyPreviewScene = null;
+let storyPreviewAnimation = null;
+let storyPreviewStartedAt = 0;
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -137,8 +145,28 @@ storyButton.addEventListener("click", async () => {
     return;
   }
 
-  storyButton.disabled = true;
-  storyButton.textContent = "영상 만드는 중";
+  await openStoryOverlay();
+});
+
+storyCloseButton.addEventListener("click", closeStoryOverlay);
+
+storyOverlay.addEventListener("click", (event) => {
+  if (event.target === storyOverlay) {
+    closeStoryOverlay();
+  }
+});
+
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && storyOverlay.classList.contains("is-open")) {
+    closeStoryOverlay();
+  }
+});
+
+storyDownloadButton.addEventListener("click", async () => {
+  if (!latestResult) return;
+
+  storyDownloadButton.disabled = true;
+  storyDownloadButton.textContent = "저장 중";
 
   try {
     await downloadStoryVideo(latestResult);
@@ -146,8 +174,8 @@ storyButton.addEventListener("click", async () => {
   } catch (error) {
     setStatus(error.message || "영상 저장에 실패했습니다.", "error");
   } finally {
-    storyButton.textContent = "스토리 영상 저장";
-    storyButton.disabled = false;
+    storyDownloadButton.textContent = "영상 저장";
+    storyDownloadButton.disabled = false;
   }
 });
 
@@ -952,6 +980,58 @@ function drawHorizon(rect, timestamp) {
   ctx.lineTo(0, rect.height);
   ctx.closePath();
   ctx.fill();
+}
+
+async function openStoryOverlay() {
+  if (!latestResult) return;
+  if (document.fonts?.ready) {
+    await document.fonts.ready;
+  }
+
+  storyPreviewScene = createStoryScene(latestResult, storyPreviewCanvas.width, storyPreviewCanvas.height);
+  storyPreviewStartedAt = performance.now();
+  storyOverlay.classList.add("is-open");
+  storyOverlay.setAttribute("aria-hidden", "false");
+  document.body.classList.add("story-open");
+  storyCloseButton.focus();
+  startStoryPreviewLoop();
+}
+
+function closeStoryOverlay() {
+  storyOverlay.classList.remove("is-open");
+  storyOverlay.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("story-open");
+
+  if (storyPreviewAnimation) {
+    cancelAnimationFrame(storyPreviewAnimation);
+    storyPreviewAnimation = null;
+  }
+}
+
+function startStoryPreviewLoop() {
+  if (storyPreviewAnimation) {
+    cancelAnimationFrame(storyPreviewAnimation);
+  }
+
+  const frame = (now) => {
+    if (!storyOverlay.classList.contains("is-open") || !latestResult || !storyPreviewScene) {
+      storyPreviewAnimation = null;
+      return;
+    }
+
+    const elapsed = now - storyPreviewStartedAt;
+    renderStoryFrame(
+      storyPreviewCtx,
+      storyPreviewCanvas.width,
+      storyPreviewCanvas.height,
+      elapsed,
+      latestResult,
+      storyPreviewScene
+    );
+    storyPreviewAnimation = requestAnimationFrame(frame);
+  };
+
+  storyPreviewAnimation = requestAnimationFrame(frame);
 }
 
 async function downloadStoryVideo(result) {

@@ -450,6 +450,7 @@ input[type="time"] {
   grid-row: 1 / span 3;
   align-self: end;
   justify-self: end;
+  position: relative;
   display: grid;
   gap: clamp(18px, 2.3vw, 28px);
   width: min(100%, 760px);
@@ -573,6 +574,87 @@ input[type="time"] {
   font-size: clamp(1rem, 1.25vw, 1.1rem);
 }
 
+.story-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 14px;
+  padding: max(14px, env(safe-area-inset-top)) 14px max(16px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% 18%, rgba(124, 199, 177, 0.18), transparent 34%),
+    rgba(2, 7, 12, 0.94);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(14px);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+  backdrop-filter: blur(18px);
+}
+
+.story-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.story-toolbar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 520px);
+  justify-self: center;
+}
+
+.story-toolbar span {
+  color: rgba(255, 250, 240, 0.68);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.story-tool-button {
+  min-height: 40px;
+  padding: 0 13px;
+  color: var(--ink-strong);
+  font-weight: 850;
+  background: rgba(255, 250, 240, 0.1);
+  border: 1px solid rgba(255, 250, 240, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.story-download-button {
+  color: #081018;
+  background: linear-gradient(135deg, var(--amber), var(--jade));
+  border: 0;
+}
+
+.story-preview-frame {
+  justify-self: center;
+  align-self: center;
+  height: min(calc(100svh - 92px), 760px);
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  background: #071016;
+  border: 1px solid rgba(255, 250, 240, 0.18);
+  border-radius: 8px;
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.48);
+}
+
+.story-preview-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+body.story-open {
+  overflow: hidden;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -684,6 +766,27 @@ input[type="time"] {
   .weather-orbit {
     justify-self: start;
     width: 112px;
+  }
+
+  .story-overlay {
+    gap: 10px;
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+
+  .story-preview-frame {
+    width: min(100%, calc((100svh - 78px) * 0.5625));
+    height: auto;
+    max-height: calc(100svh - 78px);
+  }
+
+  .story-toolbar {
+    width: min(100%, 430px);
+  }
+
+  .story-tool-button {
+    min-height: 38px;
+    padding: 0 11px;
   }
 
   .placement-grid {

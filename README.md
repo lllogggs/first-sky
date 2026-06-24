@@ -21,6 +21,6 @@ python -m http.server 5173 --bind 127.0.0.1
 - 장소 검색: Open-Meteo Geocoding API
 - 과거 날씨: Open-Meteo Historical Weather API
 - 점성술 계산: 브라우저 내부 근사 계산
-- 스토리 저장: 브라우저 MediaRecorder 기반 9:16 세로 영상 다운로드
+- 스토리 저장: 전체 화면 9:16 프리뷰 팝업과 브라우저 MediaRecorder 기반 세로 영상 다운로드
 
 Historical Weather API는 1940년 이후 데이터를 제공합니다. 더 오래된 출생일은 날씨 기록 없음 상태로 해석됩니다.
