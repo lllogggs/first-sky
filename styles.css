@@ -161,6 +161,20 @@ h1 {
   gap: 10px;
 }
 
+.date-input-row,
+.time-input-row {
+  display: grid;
+  gap: 8px;
+}
+
+.date-input-row {
+  grid-template-columns: minmax(0, 1fr) 48px;
+}
+
+.time-input-row {
+  grid-template-columns: 82px minmax(0, 1fr);
+}
+
 .field span,
 .manual-coordinates summary {
   color: rgba(255, 248, 236, 0.62);
@@ -168,7 +182,8 @@ h1 {
   font-weight: 800;
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   min-width: 0;
   height: 44px;
@@ -180,17 +195,44 @@ h1 {
   outline: none;
 }
 
-.field input:focus {
+.field select {
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, rgba(255, 248, 236, 0.68) 50%) calc(100% - 16px) 18px / 7px 7px no-repeat,
+    linear-gradient(135deg, rgba(255, 248, 236, 0.14), rgba(255, 248, 236, 0.07));
+  cursor: pointer;
+}
+
+.calendar-input {
+  padding: 0;
+  color: transparent;
+  text-align: center;
+  cursor: pointer;
+}
+
+.calendar-input::-webkit-datetime-edit,
+.calendar-input::-webkit-inner-spin-button,
+.calendar-input::-webkit-clear-button {
+  display: none;
+}
+
+.calendar-input::-webkit-calendar-picker-indicator {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0.86;
+  cursor: pointer;
+  filter: invert(1) sepia(0.35) saturate(1.2);
+}
+
+.field input:focus,
+.field select:focus {
   border-color: rgba(141, 221, 198, 0.78);
   box-shadow: 0 0 0 3px rgba(141, 221, 198, 0.13);
 }
 
 .field input::placeholder {
   color: rgba(255, 248, 236, 0.42);
-}
-
-input[type="time"] {
-  color-scheme: dark;
 }
 
 .manual-coordinates summary {
@@ -348,6 +390,10 @@ input[type="time"] {
 @media (max-width: 420px) {
   .field-pair {
     grid-template-columns: 1fr;
+  }
+
+  .time-input-row {
+    grid-template-columns: 78px minmax(0, 1fr);
   }
 
   .birth-form {

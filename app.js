@@ -11,6 +11,10 @@ const storyCanvas = document.querySelector("#storyCanvas");
 const storyCtx = storyCanvas.getContext("2d");
 const editButton = document.querySelector("#editButton");
 const downloadButton = document.querySelector("#downloadButton");
+const birthDateInput = document.querySelector("#birthDate");
+const birthDatePicker = document.querySelector("#birthDatePicker");
+const birthPeriodSelect = document.querySelector("#birthPeriod");
+const birthTimeInput = document.querySelector("#birthTime");
 
 const zodiac = [
   { ko: "양자리", element: "불", word: "개척자", style: "먼저 불을 붙이는 사람" },
@@ -115,17 +119,18 @@ const elementVoice = {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const payload = readPayload();
+  syncNormalizedInputs(payload);
 
-  if (!payload.date || !payload.time || !payload.place) {
+  if (!payload.rawDate || !payload.rawTime || !payload.place) {
     setStatus("출생일, 시간, 장소를 입력해 주세요.", "error");
     return;
   }
-  if (!isValidDateString(payload.date)) {
-    setStatus("출생일은 1994-06-21 형식으로 입력해 주세요.", "error");
+  if (!payload.date || !isValidDateString(payload.date)) {
+    setStatus("출생일은 930408, 19930408, 1993-04-08 중 편한 방식으로 입력해 주세요.", "error");
     return;
   }
-  if (!isValidTimeString(payload.time)) {
-    setStatus("시간은 18:30 형식으로 입력해 주세요.", "error");
+  if (!payload.time || !isValidTimeString(payload.time)) {
+    setStatus("시간은 오전/오후 선택 후 1100 또는 11:00 형식으로 입력해 주세요.", "error");
     return;
   }
 
@@ -150,6 +155,25 @@ form.addEventListener("submit", async (event) => {
   } finally {
     setLoading(false);
   }
+});
+
+birthDatePicker.addEventListener("change", () => {
+  if (!birthDatePicker.value) return;
+  birthDateInput.value = birthDatePicker.value;
+});
+
+birthDateInput.addEventListener("blur", () => {
+  const normalized = normalizeDateInput(birthDateInput.value);
+  if (!normalized) return;
+  birthDateInput.value = normalized;
+  birthDatePicker.value = normalized;
+});
+
+birthTimeInput.addEventListener("blur", () => {
+  const normalized = normalizeTimeInput(birthTimeInput.value, birthPeriodSelect.value);
+  if (!normalized) return;
+  birthPeriodSelect.value = periodFrom24HourTime(normalized);
+  birthTimeInput.value = formatTimeFor12HourInput(normalized);
 });
 
 editButton.addEventListener("click", () => {
@@ -183,15 +207,35 @@ requestAnimationFrame(drawStoryLoop);
 
 function readPayload() {
   const data = new FormData(form);
+  const rawDate = String(data.get("birthDate") || "").trim();
+  const rawTime = String(data.get("birthTime") || "").trim();
+  const period = String(data.get("birthPeriod") || "AM");
+  const date = normalizeDateInput(rawDate);
+  const time = normalizeTimeInput(rawTime, period);
+
   return {
     name: String(data.get("personName") || "").trim(),
-    date: String(data.get("birthDate") || "").trim(),
-    time: String(data.get("birthTime") || "").trim(),
+    rawDate,
+    rawTime,
+    period,
+    date,
+    time,
     place: String(data.get("birthPlace") || "").trim(),
     latitude: parseOptionalNumber(data.get("latitude")),
     longitude: parseOptionalNumber(data.get("longitude")),
     timezone: String(data.get("timezone") || "").trim(),
   };
+}
+
+function syncNormalizedInputs(payload) {
+  if (payload.date) {
+    birthDateInput.value = payload.date;
+    birthDatePicker.value = payload.date;
+  }
+  if (payload.time) {
+    birthPeriodSelect.value = periodFrom24HourTime(payload.time);
+    birthTimeInput.value = formatTimeFor12HourInput(payload.time);
+  }
 }
 
 function setLoading(isLoading) {
@@ -215,6 +259,84 @@ function parseOptionalNumber(value) {
   if (value === null || String(value).trim() === "") return null;
   const number = Number(value);
   return Number.isFinite(number) ? number : null;
+}
+
+function normalizeDateInput(value) {
+  const digits = String(value || "").replace(/\D/g, "");
+  let year;
+  let month;
+  let day;
+
+  if (digits.length === 6) {
+    const shortYear = Number(digits.slice(0, 2));
+    const currentShortYear = new Date().getFullYear() % 100;
+    year = shortYear <= currentShortYear ? 2000 + shortYear : 1900 + shortYear;
+    month = Number(digits.slice(2, 4));
+    day = Number(digits.slice(4, 6));
+  } else if (digits.length === 8) {
+    year = Number(digits.slice(0, 4));
+    month = Number(digits.slice(4, 6));
+    day = Number(digits.slice(6, 8));
+  } else {
+    return null;
+  }
+
+  const normalized = `${year}-${pad2(month)}-${pad2(day)}`;
+  return isValidDateString(normalized) ? normalized : null;
+}
+
+function normalizeTimeInput(value, period = "AM") {
+  const text = String(value || "").trim();
+  if (!text) return null;
+
+  let hour;
+  let minute;
+  const colonMatch = text.match(/^(\d{1,2})\s*:\s*(\d{1,2})$/);
+
+  if (colonMatch) {
+    hour = Number(colonMatch[1]);
+    minute = Number(colonMatch[2]);
+  } else {
+    const digits = text.replace(/\D/g, "");
+    if (!digits || digits.length > 4) return null;
+    if (digits.length <= 2) {
+      hour = Number(digits);
+      minute = 0;
+    } else if (digits.length === 3) {
+      hour = Number(digits.slice(0, 1));
+      minute = Number(digits.slice(1));
+    } else {
+      hour = Number(digits.slice(0, 2));
+      minute = Number(digits.slice(2));
+    }
+  }
+
+  if (!Number.isInteger(hour) || !Number.isInteger(minute) || minute < 0 || minute > 59) return null;
+  if (hour < 0 || hour > 23) return null;
+
+  if (hour === 0 || hour > 12) return `${pad2(hour)}:${pad2(minute)}`;
+
+  const normalizedPeriod = period === "PM" ? "PM" : "AM";
+  const normalizedHour = normalizedPeriod === "PM"
+    ? (hour === 12 ? 12 : hour + 12)
+    : (hour === 12 ? 0 : hour);
+
+  return `${pad2(normalizedHour)}:${pad2(minute)}`;
+}
+
+function periodFrom24HourTime(value) {
+  const hour = Number(String(value).split(":")[0]);
+  return hour >= 12 ? "PM" : "AM";
+}
+
+function formatTimeFor12HourInput(value) {
+  const [hour, minute] = String(value).split(":").map(Number);
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${pad2(minute)}`;
+}
+
+function pad2(value) {
+  return String(value).padStart(2, "0");
 }
 
 function isValidDateString(value) {

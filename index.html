@@ -36,11 +36,20 @@
           <div class="field-pair">
             <label class="field">
               <span>출생일</span>
-              <input id="birthDate" name="birthDate" type="text" inputmode="numeric" autocomplete="bday" placeholder="1994-06-21" required />
+              <div class="date-input-row">
+                <input id="birthDate" name="birthDate" type="text" inputmode="numeric" autocomplete="bday" placeholder="930408 / 1993-04-08" required />
+                <input id="birthDatePicker" class="calendar-input" type="date" aria-label="캘린더로 출생일 선택" />
+              </div>
             </label>
             <label class="field">
               <span>시간</span>
-              <input id="birthTime" name="birthTime" type="time" required />
+              <div class="time-input-row">
+                <select id="birthPeriod" name="birthPeriod" aria-label="오전 오후 선택">
+                  <option value="AM">오전</option>
+                  <option value="PM">오후</option>
+                </select>
+                <input id="birthTime" name="birthTime" type="text" inputmode="numeric" autocomplete="off" placeholder="1100 / 11:00" required />
+              </div>
             </label>
           </div>
 
